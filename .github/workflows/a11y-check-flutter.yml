@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: coryj627/flutter-a11y
-          ref: 0.3.0
+          ref: 0.4.0
           token: ${{ secrets.FLUTTER_A11Y_READ_TOKEN }}
           path: .flutter-a11y
 
@@ -65,7 +65,7 @@ jobs:
         uses: ./.flutter-a11y
         with:
           working-directory: wallet_app
-          ref: 0.3.0
+          ref: 0.4.0
           run-tests: "true"
           test-args: test/a11y --dart-define=MOCK_REPOSITORIES=true
 
