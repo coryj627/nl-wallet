@@ -2,7 +2,7 @@
 
 This directory exists on the `coryj627/nl-wallet` fork only. It pumps the app's screens under
 `flutter test` and records what [`flutter_a11y_test`](https://github.com/coryj627/flutter-a11y)
-0.5.0 finds on the rendered semantics tree. The findings are hand-labelled later to measure the
+0.5.1 finds on the rendered semantics tree. The findings are hand-labelled later to measure the
 precision of each rule on a real application, so the aim is screens pumped as a user sees them,
 not a small number of findings. Nothing under `lib/` and none of the app's own tests is changed.
 
@@ -29,7 +29,7 @@ Outputs, both under `wallet_app/.a11y/flutter/` and both git-ignored:
 audited, for the people labelling the findings.
 
 Two consecutive runs produce byte-identical files (checked three times on 2026-11-10: 95
-findings each).
+findings each; again on 2026-11-11 at 0.5.1: 80 findings each).
 
 ## What is pumped
 
@@ -182,7 +182,7 @@ Viewport is logical px (see "Harness decisions"). Findings are the count on 2026
 
 The four `debug/design-system-*` ids are the developer showcase at `/theme`. It is in the
 route table and the mock flavour reaches it, but its menu row exists in non-release builds
-only (`MenuScreen.showDesignSystemRow = !kReleaseMode`). It is audited (11 of the 95 findings)
+only (`MenuScreen.showDesignSystemRow = !kReleaseMode`). It is audited (6 of the 80 findings)
 and its ids are prefixed so it can be labelled or set aside as a group. For the same reason the
 `menu` screen shows a "Design System" row that a release build does not have.
 
@@ -261,11 +261,12 @@ everything the app can show; these are the ones known to be missing):
   `setup-security/repeat-pin`, `personalize/confirm-pin`); see "Friction". There are no overflow
   findings in this run, so the diagnostic never changed a finding's confidence.
 - **Modal barriers.** The scrim of a dismissible dialog is a tappable "Dismiss" node with no
-  role, reported as `interactive-missing-role` on `card/delete-dialog`, `dialog/idle-warning`
-  and `settings/remove-data-dialog`. Since 0.5.0 each of those findings points at the dialog's
-  own widget (`delete_card_dialog.dart`, `idle_warning_dialog.dart`, `reset_wallet_dialog.dart`)
-  and says the node is a modal barrier; up to 0.4.2 all three pointed at the `MaterialApp` in
-  `lib/src/wallet_app.dart`.
+  role. Since 0.5.1 it is reported (as needs-review `interactive-missing-role`) only when the
+  dialog has no other labelled way to close: on `dialog/idle-warning` (its buttons are "Log
+  out" and "Continue"), not on `card/delete-dialog` or `settings/remove-data-dialog`, which
+  have a Cancel button. The finding points at the dialog's own widget
+  (`idle_warning_dialog.dart`) and says the node is a modal barrier; up to 0.4.2 barrier
+  findings pointed at the `MaterialApp` in `lib/src/wallet_app.dart`.
 - **Audit configuration.** `A11yAuditConfig(platform: null, reflow: true, sourceRoots:
   [<wallet_app>/lib/])`: all 19 rules, both platform tap-target guidelines (a small control can
   be reported twice), the 200 % text and 320 px passes, attribution to `lib/` only. Nothing is
