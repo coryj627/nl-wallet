@@ -2,7 +2,7 @@
 
 This directory exists on the `coryj627/nl-wallet` fork only. It pumps the app's screens under
 `flutter test` and records what [`flutter_a11y_test`](https://github.com/coryj627/flutter-a11y)
-0.4.2 finds on the rendered semantics tree. The findings are hand-labelled later to measure the
+0.5.0 finds on the rendered semantics tree. The findings are hand-labelled later to measure the
 precision of each rule on a real application, so the aim is screens pumped as a user sees them,
 not a small number of findings. Nothing under `lib/` and none of the app's own tests is changed.
 
@@ -254,11 +254,18 @@ everything the app can show; these are the ones known to be missing):
 - **Fonts.** The app's own fonts (RijksoverheidSansWebText, WalletIcons, MaterialIcons), loaded
   by the app's own `FontUtils.loadAppFonts()` through its `test/flutter_test_config.dart`. The
   theme sets the family everywhere, so Roboto is not needed and not loaded. Screenshots confirm
-  real glyphs on every screen. Even so the audit reports its `default-test-font` diagnostic on 7
-  screens (`introduction/page-1..3`, `introduction/privacy`, `setup-security/choose-pin`,
-  `setup-security/repeat-pin`, `personalize/confirm-pin`); see "Friction" for why that is a
-  false alarm. Its effect is that an overflow finding text takes part in would be tiered
-  "needs review" on those screens. There are no overflow findings in this run.
+  real glyphs on every screen, and no screen carries a font diagnostic: neither
+  `default-test-font` nor `partial-test-font` (raised when only some of the text a screen paints
+  is in the test font). Up to 0.4.2 the audit reported a false `default-test-font` on 7 screens
+  (`introduction/page-1..3`, `introduction/privacy`, `setup-security/choose-pin`,
+  `setup-security/repeat-pin`, `personalize/confirm-pin`); see "Friction". There are no overflow
+  findings in this run, so the diagnostic never changed a finding's confidence.
+- **Modal barriers.** The scrim of a dismissible dialog is a tappable "Dismiss" node with no
+  role, reported as `interactive-missing-role` on `card/delete-dialog`, `dialog/idle-warning`
+  and `settings/remove-data-dialog`. Since 0.5.0 each of those findings points at the dialog's
+  own widget (`delete_card_dialog.dart`, `idle_warning_dialog.dart`, `reset_wallet_dialog.dart`)
+  and says the node is a modal barrier; up to 0.4.2 all three pointed at the `MaterialApp` in
+  `lib/src/wallet_app.dart`.
 - **Audit configuration.** `A11yAuditConfig(platform: null, reflow: true, sourceRoots:
   [<wallet_app>/lib/])`: all 19 rules, both platform tap-target guidelines (a small control can
   be reported twice), the 200 % text and 320 px passes, attribution to `lib/` only. Nothing is
@@ -315,13 +322,14 @@ app's other tests never see the sink and behave exactly as before.
 
 ## Friction (app and flutter_a11y_test 0.3.0)
 
-- **`default-test-font` false alarm (flutter_a11y_test).** `onlyTestFontRendered` collects font
+- **`default-test-font` false alarm (flutter_a11y_test 0.3.0 to 0.4.2; fixed in 0.5.0, where a
+  span takes the family of its nearest ancestor that sets one).** `onlyTestFontRendered` collected font
   families with `RenderParagraph.text.visitChildren`, and `TextSpan.visitChildren` calls the
   visitor only for spans that have text. This app builds most text as
   `Text.rich(TextSpan(children: [TextSpan(text: …, locale: …)]))`: the family is on the root
   span, which has no text, and the child that has text has no style. On a screen where every
-  paragraph is built that way the detector sees only `null` and icon families and concludes
-  the test font is in use.
+  paragraph is built that way the detector sees only `null` and icon families and concluded
+  the test font was in use.
 - **Singletons that capture a test's zone.** Three things worked in the first test of the
   isolate and silently did nothing afterwards, because a future or subscription made in one
   test belongs to that test's fake-async zone, which never runs again: `rootBundle`'s string
