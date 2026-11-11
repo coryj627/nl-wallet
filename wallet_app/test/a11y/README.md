@@ -2,7 +2,7 @@
 
 This directory exists on the `coryj627/nl-wallet` fork only. It pumps the app's screens under
 `flutter test` and records what [`flutter_a11y_test`](https://github.com/coryj627/flutter-a11y)
-0.4.0 finds on the rendered semantics tree. The findings are hand-labelled later to measure the
+0.4.1 finds on the rendered semantics tree. The findings are hand-labelled later to measure the
 precision of each rule on a real application, so the aim is screens pumped as a user sees them,
 not a small number of findings. Nothing under `lib/` and none of the app's own tests is changed.
 
