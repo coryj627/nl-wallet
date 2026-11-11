@@ -72,6 +72,12 @@ dependencies:
 dev_dependencies:
   bloc_test: ^10.0.0
   build_runner: ^2.6.1
+  # Runtime accessibility audit (test/a11y), dogfood of coryj627/flutter-a11y on this fork only.
+  flutter_a11y_test:
+    git:
+      url: https://github.com/coryj627/flutter-a11y.git
+      ref: 0.3.0
+      path: packages/flutter_a11y_test
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter

@@ -1,0 +1,77 @@
+# Dogfood workflow for the MinBZK/nl-wallet fork: scans the Flutter app (wallet_app/)
+# with a11y-check-flutter. Static lint plus the runtime audit in wallet_app/test/a11y,
+# which pumps the app's mock flavour screen by screen (see wallet_app/test/a11y/README.md).
+# Review-only: once wallet_app/.a11y/flutter/baseline.json is committed it is the accepted
+# floor, and the job fails only on a NEW finding at or above the config's fail_at.
+#
+# Prepared for later; nothing triggers it until this branch is pushed.
+#
+# One-time setup in the fork:
+#   1. Secret FLUTTER_A11Y_READ_TOKEN: a fine-grained PAT with Contents: Read-only
+#      on coryj627/flutter-a11y (private). It lets `pub get` fetch flutter_a11y_test
+#      and `dart pub global activate` fetch the CLI.
+#   2. Code scanning must be enabled on the fork for the SARIF upload step.
+#
+# This fork is public and coryj627/flutter-a11y is private: a public repository can
+# never `uses:` an action from a private one, so the action is checked out with the
+# read token and run as a local action.
+name: a11y-check-flutter
+
+on:
+  push:
+    branches: [main, a11y-dogfood]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write # github/codeql-action/upload-sarif
+
+jobs:
+  a11y:
+    name: a11y-check-flutter
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # The pub workspace (pubspec.yaml at the repository root) asks for Flutter ^3.47.0.
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: true
+
+      - name: Read access to coryj627/flutter-a11y (private)
+        env:
+          TOKEN: ${{ secrets.FLUTTER_A11Y_READ_TOKEN }}
+        run: |
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+
+      - name: Fetch the a11y-check-flutter action
+        uses: actions/checkout@v4
+        with:
+          repository: coryj627/flutter-a11y
+          ref: 0.3.0
+          token: ${{ secrets.FLUTTER_A11Y_READ_TOKEN }}
+          path: .flutter-a11y
+
+      # The app is the wallet_app package of the workspace; .a11y/ lives next to its
+      # pubspec.yaml. Only test/a11y is run, with the mock flavour selected: the audit
+      # refuses to run without MOCK_REPOSITORIES=true, and the app's own golden tests
+      # are only valid on the hosts their goldens were made on.
+      - name: Scan (pub get → flutter test test/a11y → a11y_check_flutter scan)
+        id: a11y
+        uses: ./.flutter-a11y
+        with:
+          working-directory: wallet_app
+          ref: 0.3.0
+          run-tests: "true"
+          test-args: test/a11y --dart-define=MOCK_REPOSITORIES=true
+
+      - name: Upload SARIF to code scanning
+        if: always() && steps.a11y.outputs.sarif != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.a11y.outputs.sarif }}
+          category: a11y-check-flutter
